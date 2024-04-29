@@ -27,12 +27,11 @@
         </div>
       </header>
       <div class="px-4 py-3 my-3 text-center">
-        <img class="d-block mx-auto mb-4" src="feature-envy-1.png" alt="" width="300" height="200">
-        <h1 class="display-5 fw-bold text-body-emphasis">Feature Envy</h1>
+        <img class="d-block mx-auto mb-4" src="middle-man01.png" alt="" width="300" height="200">
+        <h1 class="display-5 fw-bold text-body-emphasis">Middle Man</h1>
         <div class="col-lg-8 mx-auto">
-          <p class="lead">Feature Envy is a code smell that occurs when a method in one class excessively references or 
-            depends on the data or behavior of another class rather than its own. In other words, the method is more interested 
-            in the features or attributes of another class than its own.</p>
+          <p class="lead">
+            Middle Man Smell is a code pattern where a class merely delegates tasks to others without contributing any significant behavior of its own.</p>
         </div>
       </div>
       <div class="col-lg-8 mx-auto p-4 py-md-5">      
@@ -41,13 +40,14 @@
           <div class="row g-5">
             <div class="col-md-6">
               <h2 class="text-body-emphasis">When does it happen?</h2>
-              <p>Feature Envy arises when a method overly relies on the data or behavior of another class, 
-                often occurring in complex logic scenarios, changing requirements, or due to lack of refactoring in codebases.</p>
+              <p>
+                Middle Man Smell occurs when a class is created solely to delegate tasks to other classes, lacking any substantial behavior of its own..</p>
             </div>
             <div class="col-md-6">
               <h2 class="text-body-emphasis">Treatment</h2>
-              <p>To address Feature Envy, consider refactoring the method to better encapsulate its behavior within its own class, improving class encapsulation, 
-                or using techniques like dependency injection for better code organization and maintainability.</p>
+              <p>
+                If most of a method's classes delegate to another class, it's time to consider applying the Remove Middle Man refactoring technique.
+                </p>
             </div>
           </div>
         </main>
@@ -57,82 +57,88 @@
         <h2 class="text-body-emphasis mx-auto col-lg-8">Example</h2>
         <div class="col-lg-8 mx-auto">
           <hr class="bg-dark" style="height: 1px;">
-          <p class="lead">In the example Lecturer.java, there is a method named <code class="language-plaintext highlighter-rouge">isScored</code> that only accesses the examiner data in the Exam class.</p>
+          <p class="lead">
+            Take a look at LinkedList.java and ShoppingCart.java. Although ShoppingCart adds elements to LinkedList, it's revealed that within LinkedList, it simply delegates to java.util.Vector.</p>
+            <p>ShoppingCart.java</p>
           <pre><code class="language-Java thiscode">
-public class Lecturer extends Binusian {
-	public Lecturer(String id, String name) {
-		super(id, name);
-		if(id.length() != 5) {
-			throw new IllegalArgumentException();
-		}
-	}
-	
-	public void giveScore(Exam exam, int score) {
-		if(isScored(exam)) {
-			throw new IllegalArgumentException("exam already scored");
-		}
-		
-		exam.setScore(this, score);
-	}
-	
-	public boolean isScored(Exam exam) {
-		return exam.getExaminer() != null;
-	}
-}
+            public class ShoppingCart {
+              private LinkedList<Item> items;
+                
+              public ShoppingCart() {
+                this.items = new LinkedList<>();
+              }
+            
+              public void add(Item item){
+                items.add(item);
+              }
+              
+              public void remove(Item item){
+                items.remove(item);
+              }
+              
+              public double totalPrice() {
+                double total = 0.0;
+                for (Item item : items.getList()) {
+                  total += item.getPrice();
+                }
+                return total;
+              }
+            }
+          </code></pre>
+
+          <p>LinkedList.java</p>
+          <pre><code class="language-Java thiscode">
+            import java.util.Vector;
+
+            public class LinkedList<E> {
+              private Vector<E> v = new Vector<E>();
+              
+              public void add(E o){
+                v.addElement(o);
+              }
+              
+              public void remove(E o){
+                v.remove(o);
+              }
+              
+              @SuppressWarnings("unchecked")
+              public Vector<E> getList() {
+                return (Vector<E>) v.clone();
+              }
+            }
           </code></pre>
           <h3>Treatment:</h3>
-          <p class="lead">The Move Method refactoring is applied to the <code class="language-plaintext highlighter-rouge">isScored</code> function. Note that in the after package, <code class="language-plaintext highlighter-rouge">isScored</code> is moved to the Exam class.</p>
-          <p>Lecture.java</p>
+          <p class="lead">
+            Remove the Middle Man, which is LinkedList. Now, in the after package, the ShoppingCart class directly accesses java.util.Vector.</p>
+          <p>ShoppingCart.java</p>
+  
+      
           <pre><code class="language-Java thiscode">
-public class Lecturer extends Binusian {
+            import java.util.Vector;
 
-	public Lecturer(String id, String name) {
-		super(id, name);
-		if(id.length() != 5) {
-			throw new IllegalArgumentException();
-		}
-	}
-}
-          </code></pre>
-          <p>Exam.java</p>
-          <pre><code class="language-Java thiscode">
-public class Exam {
-	private Student student;
-	private int score;
-	private Lecturer examiner;
-		
-	public Exam(Student student) {
-		this.student = student;
-	}
-
-	public int getScore() {
-		return score;
-	}
-	
-	public void setScore(Lecturer examiner, int score) {
-		if(this.isScored()) {
-			throw new IllegalArgumentException("exam already scored");
-		}
-		
-		if(score < 0 || score > 100) 
-			throw new IllegalArgumentException("score must be between 0 - 100");
-		
-		this.examiner = examiner;
-		this.score = score;
-	}
-	
-	public Student getStudent() {
-		return student;
-	}
-	
-	public Lecturer getExaminer() {
-		return examiner;
-	}
-
-	public boolean isScored() {
-		return getExaminer() != null;
-	}
-}
+            public class ShoppingCart {
+              private Vector<Item> items;
+                
+              public ShoppingCart() {
+                this.items = new Vector<>();
+              }
+            
+              public void add(Item item){
+                items.add(item);
+              }
+              
+              public void remove(Item item){
+                items.remove(item);
+              }
+              
+              public double totalPrice() {
+                double total = 0.0;
+                for (Item item : items) {
+                  total += item.getPrice();
+                }
+                return total;
+              }
+            }
           </code></pre>
         </div>
         <footer class="pt-4 my-2 text-body-secondary border-top text-center">
