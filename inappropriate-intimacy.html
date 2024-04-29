@@ -28,12 +28,10 @@
         </div>
       </header>
       <div class="px-4 py-3 my-3 text-center">
-        <img class="d-block mx-auto mb-4" src="feature-envy-1.png" alt="" width="300" height="200">
-        <h1 class="display-5 fw-bold text-body-emphasis">Feature Envy</h1>
+        <img class="d-block mx-auto mb-4" src="inappropriate-intimacy-01.png" alt="" width="300" height="200">
+        <h1 class="display-5 fw-bold text-body-emphasis">Inappropriate Intimacy</h1>
         <div class="col-lg-8 mx-auto">
-          <p class="lead">Feature Envy is a code smell that occurs when a method in one class excessively references or 
-            depends on the data or behavior of another class rather than its own. In other words, the method is more interested 
-            in the features or attributes of another class than its own.</p>
+          <p class="lead">Inappropriate Intimacy is a code smell that occurs when one class excessively relies on the internal fields and methods of another class.</p>
         </div>
       </div>
       <div class="col-lg-8 mx-auto p-4 py-md-5">      
@@ -42,96 +40,220 @@
           <div class="row g-5">
             <div class="col-md-6">
               <h2 class="text-body-emphasis">When does it happen?</h2>
-              <p>Feature Envy arises when a method overly relies on the data or behavior of another class, 
-                often occurring in complex logic scenarios, changing requirements, or due to lack of refactoring in codebases.</p>
+              <p>Inappropriate Intimacy occurs when one class excessively relies on the internal fields and methods of another, 
+                often arising from tight collaboration, evolving requirements, or lack of design review.</p>
             </div>
             <div class="col-md-6">
               <h2 class="text-body-emphasis">Treatment</h2>
-              <p>To address Feature Envy, consider refactoring the method to better encapsulate its behavior within its own class, improving class encapsulation, 
-                or using techniques like dependency injection for better code organization and maintainability.</p>
+              <p>To address it, refactor for loose coupling, encapsulate behavior within classes, use design patterns, conduct regular code 
+                reviews and refactoring, and utilize unit testing and mocking to isolate dependencies and improve maintainability.</p>
             </div>
           </div>
         </main>
         <hr class="bg-dark" style="height: 1px;">
       </div>
-      <div class="px-4 py-3 my-3 text-left">
+      <div class="px-4 py-3 my-1 text-left">
         <h2 class="text-body-emphasis mx-auto col-lg-8">Example</h2>
         <div class="col-lg-8 mx-auto">
           <hr class="bg-dark" style="height: 1px;">
-          <p class="lead">In the example Lecturer.java, there is a method named <code class="language-plaintext highlighter-rouge">isScored</code> that only accesses the examiner data in the Exam class.</p>
+          <p class="lead">In the constructor in Product.java, the Product class knows about the <code class="language-plaintext highlighter-rouge">addTag</code> function in Catalog and adds its own tag to Catalog.</p>
+          <p>Product.java</p>
           <pre><code class="language-Java thiscode">
-public class Lecturer extends Binusian {
-	public Lecturer(String id, String name) {
-		super(id, name);
-		if(id.length() != 5) {
-			throw new IllegalArgumentException();
-		}
+import java.util.UUID;
+import java.util.Vector;
+
+public class Product {
+	private Catalog catalog;
+	private UUID id;
+	private String name;
+	private double price;
+	
+	public Product(String name, double price, Catalog catalog) {
+		this.id = UUID.randomUUID();
+		this.name = name;
+		this.price = price;
+		this.catalog = catalog;
+		this.catalog.addTag(this, Catalog.NEWCOMER_TAG);
 	}
 	
-	public void giveScore(Exam exam, int score) {
-		if(isScored(exam)) {
-			throw new IllegalArgumentException("exam already scored");
-		}
-		
-		exam.setScore(this, score);
+	public UUID getId() {
+		return id;
 	}
 	
-	public boolean isScored(Exam exam) {
-		return exam.getExaminer() != null;
+	public String getName() {
+		return name;
+	}
+	
+	public void setName(String name) {
+		this.name = name;
+	}
+	
+	public double getPrice() {
+		return price;
+	}
+	
+	public void setPrice(double price) {
+		this.price = price;
 	}
 }
           </code></pre>
+          <p class="lead">This is certainly dangerous because it means the Product class can add any tag to Catalog without Catalog's permission</p>
           <h3>Treatment:</h3>
-          <p class="lead">The Move Method refactoring is applied to the <code class="language-plaintext highlighter-rouge">isScored</code> function. Note that in the after package, <code class="language-plaintext highlighter-rouge">isScored</code> is moved to the Exam class.</p>
-          <p>Lecture.java</p>
+          <img class="d-block mx-auto mb-4" src="inappropriate-intimacy-02.png" alt="" width="300" height="200">
+          <p class="lead">Catalog and Product have a bidirectional relationship that is unnecessary, so a change from Bidirectional Association to Unidirectional is performed. This is done by removing the catalog field inside Product.
+            <br><br>
+            All methods in the Catalog class that are related to tag manipulation have their access modifiers changed to private</p>
+          <p>Catalog.java</p>
           <pre><code class="language-Java thiscode">
-public class Lecturer extends Binusian {
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.Vector;
 
-	public Lecturer(String id, String name) {
-		super(id, name);
-		if(id.length() != 5) {
-			throw new IllegalArgumentException();
+public class Catalog {
+	public final static String NEWCOMER_TAG = "newcomer";
+	public final static String CHEAP_TAG = "cheap";
+	
+	private String name;
+	private Vector&lt;Product&gt; products;
+	private Map&lt;UUID, Vector&lt;String&gt;&gt; tags;
+
+	public Catalog(String name) {
+		this.name = name;
+		this.products = new Vector&lt;Product&gt;();
+		this.tags = new HashMap&lt;UUID, Vector&lt;String&gt;&gt;();
+	}
+	
+	public void print() {
+		System.out.println("catalog " + name + ":");
+		for (Product product : products) {
+			String line = "";
+			
+			line += product.getId() + " ";
+			line += product.getName() + " ";
+			line += product.getPrice() + " ";
+			
+			Vector&lt;String&gt; tags = this.tags.get(product.getId());
+			if(tags != null) {
+				line += String.join(",", tags);
+			} 
+			
+			System.out.println(line);
+		}
+	}
+	
+	private void addTag(Product p, String tag) {
+		Vector&lt;String&gt; tags = this.tags.get(p.getId());
+		if(tags == null) {
+			tags = new Vector&lt;String&gt;();
+		}
+		
+		if(tags.contains(tag)) return;
+		tags.add(tag);
+		this.tags.put(p.getId(), tags);
+	}
+	
+	private void removeTag(Product p, String tag) {
+		Vector&lt;String&gt; tags = this.tags.get(p.getId());
+		if(tags == null) {
+			return;
+		}
+		
+		while(tags.remove(tag)) {}
+		this.tags.put(p.getId(), tags);
+	}
+	
+	public void setName(String name) {
+		this.name = name;
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	public void addProduct(Product p) {
+		products.add(p);
+		newcomerTag();
+		cheapTag();
+	}
+	
+	/**
+	 * give newcomer tag to the 3 latest product
+	 */
+	private void newcomerTag() {
+		int n = products.size();
+		if(n &gt; 3) {
+			for(int i = 0; i &lt; n-3; i++) {
+				removeTag(products.elementAt(i), NEWCOMER_TAG);
+			}
+		}
+		
+		int start = n-3 &gt; 0 ? n-3 : 0; 
+		for(int i = start; i &lt; n; i++) {
+			addTag(products.elementAt(i), NEWCOMER_TAG);
+		}
+	}
+	
+	/**
+	 * give cheap tag to top 3 cheapest product
+	 */
+	private void cheapTag() {
+		Vector&lt;Product&gt; sortByPrice = (Vector&lt;Product&gt;) products.clone();
+		sortByPrice.sort(new Comparator&lt;Product&gt;() {
+			@Override
+			public int compare(Product o1, Product o2) {
+				if(o1.getPrice() == o2.getPrice()) return 0;
+				if(o1.getPrice() &lt; o2.getPrice()) return -1;
+				return 1;
+			}
+		});
+		
+		for (Product product : sortByPrice) {
+			removeTag(product, CHEAP_TAG);
+		}
+		
+		int n = sortByPrice.size() &gt; 3 ? 3 : sortByPrice.size();
+		for(int i = 0; i &lt; n; i++) {
+			addTag(sortByPrice.elementAt(i), CHEAP_TAG);
 		}
 	}
 }
           </code></pre>
-          <p>Exam.java</p>
+          <p>Product.java</p>
           <pre><code class="language-Java thiscode">
-public class Exam {
-	private Student student;
-	private int score;
-	private Lecturer examiner;
-		
-	public Exam(Student student) {
-		this.student = student;
-	}
+import java.util.UUID;
+import java.util.Vector;
 
-	public int getScore() {
-		return score;
+public class Product {
+	private UUID id;
+	private String name;
+	private double price;
+	
+	public Product(String name, double price) {
+		this.id = UUID.randomUUID();
+		this.name = name;
+		this.price = price;
 	}
 	
-	public void setScore(Lecturer examiner, int score) {
-		if(this.isScored()) {
-			throw new IllegalArgumentException("exam already scored");
-		}
-		
-		if(score < 0 || score > 100) 
-			throw new IllegalArgumentException("score must be between 0 - 100");
-		
-		this.examiner = examiner;
-		this.score = score;
+	public UUID getId() {
+		return id;
 	}
 	
-	public Student getStudent() {
-		return student;
+	public String getName() {
+		return name;
 	}
 	
-	public Lecturer getExaminer() {
-		return examiner;
+	public void setName(String name) {
+		this.name = name;
 	}
-
-	public boolean isScored() {
-		return getExaminer() != null;
+	
+	public double getPrice() {
+		return price;
+	}
+	
+	public void setPrice(double price) {
+		this.price = price;
 	}
 }
           </code></pre>
